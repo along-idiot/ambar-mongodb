@@ -1,16 +1,13 @@
-FROM debian:jessie
+FROM debian:jessie-slim
 
 # add our user and group first to make sure their IDs get assigned consistently, regardless of whatever dependencies get added
 RUN groupadd -r mongodb && useradd -r -g mongodb mongodb
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
+		jq \
 		numactl \
 	&& rm -rf /var/lib/apt/lists/*
-
-# Set a timezone
-ENV TZ=UTC
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # grab gosu for easy step-down from root
 ENV GOSU_VERSION 1.7
@@ -31,6 +28,7 @@ ENV GPG_KEYS \
 #       Key fingerprint = 0C49 F373 0359 A145 1858  5931 BC71 1F9B A157 03C6
 # uid                  MongoDB 3.4 Release Signing Key <packaging@mongodb.com>
 	0C49F3730359A14518585931BC711F9BA15703C6
+# https://docs.mongodb.com/manual/tutorial/verify-mongodb-packages/#download-then-import-the-key-file
 RUN set -ex; \
 	export GNUPGHOME="$(mktemp -d)"; \
 	for key in $GPG_KEYS; do \
@@ -41,7 +39,7 @@ RUN set -ex; \
 	apt-key list
 
 ENV MONGO_MAJOR 3.4
-ENV MONGO_VERSION 3.4.2
+ENV MONGO_VERSION 3.4.3
 ENV MONGO_PACKAGE mongodb-org
 
 RUN echo "deb http://repo.mongodb.org/apt/debian jessie/mongodb-org/$MONGO_MAJOR main" > /etc/apt/sources.list.d/mongodb-org.list
@@ -56,8 +54,8 @@ RUN set -x \
 		${MONGO_PACKAGE}-tools=$MONGO_VERSION \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& rm -rf /var/lib/mongodb \
-    && mv /etc/mongod.conf /etc/mongod.conf.orig \
-    && touch /etc/mongod.conf \
+	&& mv /etc/mongod.conf /etc/mongod.conf.orig
+	&& touch /etc/mongod.conf \
     && chown mongodb:mongodb /etc/mongod.conf
 
 RUN mkdir -p /data/db /data/configdb \
