@@ -6,6 +6,7 @@ RUN groupadd -r mongodb && useradd -r -g mongodb mongodb
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
 		numactl \
+		curl \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Set a timezone
@@ -70,3 +71,6 @@ RUN chmod +x /entrypoint.sh
 EXPOSE 27017
 
 CMD ["/entrypoint.sh"]
+
+HEALTHCHECK --interval=5s --timeout=30s --retries=50 \
+  CMD curl -f localhost:27017 || exit 1
